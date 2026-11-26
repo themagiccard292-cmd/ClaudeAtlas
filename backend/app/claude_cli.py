@@ -195,6 +195,42 @@ class CliManager:
         if self._login:
             self._login.cancel()
 
+    # -- one-click install of Anthropic's official Claude Code installer ---------------
+    install_argv: list[str] | None = None  # tests override; default = official PowerShell installer
+
+    def start_install(self, on_line: Callable[[str], None], on_done: Callable[[bool, str], None]) -> bool:
+        if sys.platform != "win32" and not self.install_argv:
+            on_done(False, "Automatic install is only available on Windows.")
+            return False
+        if getattr(self, "_installing", False):
+            return False
+        argv = self.install_argv or ["powershell.exe", "-NoLogo", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", INSTALL_COMMAND]
+        import subprocess
+
+        self._installing = True
+
+        def run() -> None:
+            ok, tail = False, ""
+            try:
+                proc = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=sanitized_env(), **popen_flags())
+                assert proc.stdout
+                for raw in iter(proc.stdout.readline, b""):
+                    line = raw.decode("utf-8", "replace").rstrip()
+                    if line:
+                        tail = line
+                        on_line(line)
+                ok = proc.wait() == 0
+            except OSError as e:
+                tail = str(e)
+            finally:
+                self._installing = False
+                self._info = None  # force re-detection of the freshly installed binary
+                self.invalidate()
+            on_done(ok and self.info(force=True) is not None, "" if ok else tail[-300:])
+
+        threading.Thread(target=run, daemon=True).start()
+        return True
+
     def logout(self) -> None:
         info = self.info()
         if info:

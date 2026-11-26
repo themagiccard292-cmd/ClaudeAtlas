@@ -492,3 +492,43 @@ async def test_tts_chunks_arrive_over_websocket(client, monkeypatch):
     await ws.send(type="tts.speak", text="One. Two.")
     last = await ws.wait(lambda e: e["type"] == "tts.chunk" and e["last"])
     assert [c["seq"] for c in ws.of("tts.chunk")] == [0, 1] and last["mime"] == "audio/mpeg"
+
+
+async def test_one_click_install_streams_progress_then_detects_cli(live_backend, tmp_path, fake_claude_path):
+    lb = live_backend
+    lb.svc.settings.update({"claude_path": ""})
+    import shutil, sys
+    real = shutil.which
+    # not installed at first...
+    import app.claude_cli as cc
+    state = {"installed": False}
+    cc_find = cc.find_claude
+    cc.find_claude = lambda custom="": fake_claude_path if state["installed"] else None
+    lb.svc.cli.install_argv = [sys.executable, "-c", "print('Downloading Claude Code...'); print('Installed.')"]
+    orig_start = lb.svc.cli.start_install
+
+    def start(on_line, on_done):
+        def done(ok, d):
+            on_done(ok, d)
+        def flip_line(l):
+            state["installed"] = True  # the installer 'put the binary on disk'
+            on_line(l)
+        return orig_start(flip_line, done)
+
+    lb.svc.cli.start_install = start
+    ws = Ws(await connect(lb.url, origin=None))
+    try:
+        await ws.send(type="hello")
+        st = await ws.wait(lambda e: e["type"] == "auth.status")
+        assert st["cli_found"] is False
+        n = len(ws.events)
+        await ws.send(type="auth.install")
+        line = await ws.wait(lambda e: e["type"] == "auth.install.line", start=n)
+        assert "Downloading" in line["line"]
+        done = await ws.wait(lambda e: e["type"] == "auth.install.done", start=n)
+        assert done["ok"] is True
+        after = await ws.wait(lambda e: e["type"] == "auth.status" and e["cli_found"], start=n)
+        assert after["subscription_ok"]
+    finally:
+        cc.find_claude = cc_find
+        await ws.close()

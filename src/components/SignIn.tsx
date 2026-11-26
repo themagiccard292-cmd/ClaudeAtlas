@@ -29,6 +29,7 @@ function CopyBox({ text }: { text: string }) {
 export function SignIn() {
   const auth = useStore((s) => s.auth)
   const login = useStore((s) => s.login)
+  const install = useStore((s) => s.install)
   const open = (url: string) => void window.api?.openExternal(url)
 
   if (!auth) return null
@@ -47,18 +48,37 @@ export function SignIn() {
         </p>
 
         {missing && (
-          <div className="mt-6 space-y-3 text-left">
-            <div className="text-[13px] font-medium">1. Open PowerShell and run the official installer:</div>
-            <CopyBox text={auth.install_command} />
-            <div className="text-[13px] font-medium">2. Then check again:</div>
-            <div className="flex gap-2">
-              <Button variant="primary" className="flex-1" onClick={() => client.send({ type: 'auth.status', force: true })}>
-                <RefreshCw size={15} /> I’ve installed it — check again
-              </Button>
-              <Button onClick={() => open(auth.install_guide_url)}>
-                <ExternalLink size={15} /> Guide
-              </Button>
-            </div>
+          <div className="mt-7 space-y-3 text-left">
+            {install.active ? (
+              <div className="rounded-2xl border border-line bg-card p-5 text-center">
+                <div className="flex items-center justify-center gap-2.5 text-[14.5px] font-medium">
+                  <LoaderCircle size={18} className="spin text-accent" /> Installing Claude Code…
+                </div>
+                <p className="selectable mt-2 truncate font-mono text-[12px] text-muted">{install.lines[install.lines.length - 1] ?? 'Starting the official installer…'}</p>
+              </div>
+            ) : (
+              <>
+                <Button variant="primary" size="lg" className="w-full" onClick={() => client.send({ type: 'auth.install' })}>
+                  Install Claude Code automatically
+                </Button>
+                {install.error && <p className="text-[13px] text-danger">{install.error}</p>}
+                <p className="text-center text-[12px] text-muted">Runs Anthropic’s official installer (no Node.js or Python needed). Takes about a minute.</p>
+                <details className="rounded-xl border border-line px-3 py-2 text-[13px]">
+                  <summary className="cursor-pointer text-muted">Install it manually instead</summary>
+                  <div className="mt-2 space-y-2">
+                    <CopyBox text={auth.install_command} />
+                    <div className="flex gap-2">
+                      <Button className="flex-1" onClick={() => client.send({ type: 'auth.status', force: true })}>
+                        <RefreshCw size={15} /> Check again
+                      </Button>
+                      <Button onClick={() => open(auth.install_guide_url)}>
+                        <ExternalLink size={15} /> Guide
+                      </Button>
+                    </div>
+                  </div>
+                </details>
+              </>
+            )}
           </div>
         )}
 
