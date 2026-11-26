@@ -126,7 +126,7 @@ an **Install Claude Code automatically** button that runs Anthropic's official i
 (`irm https://claude.ai/install.ps1 | iex`, no Node needed), then moves straight on to sign-in.
 
 **No build tools on your PC either:** run the **Build Windows installer** GitHub Action (Actions tab → Run workflow,
-or push a `v*` tag) and download `Claude-OS-Agent-Setup.exe` / `…-Portable.exe` from the run's artifacts.
+or push a `v*` tag). It builds the installers and publishes them on the repo's **Releases** page (built `.exe` files are not committed to git — they are too large for it).
 
 ### Development
 

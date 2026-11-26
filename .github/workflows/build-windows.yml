@@ -1,11 +1,24 @@
 name: Build Windows installer
 
 # Builds in the cloud so nobody needs Node.js or Python installed.
-# Run it from the Actions tab (or push a tag like v1.1.0) and download the artifacts.
+# Run it from the Actions tab ("Run workflow") or push a tag like v1.1.0.
+# By default it also publishes a GitHub Release with the .exe files attached (Releases page = download button).
 on:
   workflow_dispatch:
+    inputs:
+      publish_release:
+        description: 'Publish a GitHub Release with the installers'
+        type: boolean
+        default: true
+      tag:
+        description: 'Release tag (e.g. v1.1.0)'
+        type: string
+        default: 'v1.1.0'
   push:
     tags: ['v*']
+
+permissions:
+  contents: write   # needed to create the release
 
 jobs:
   build:
@@ -25,5 +38,16 @@ jobs:
         with:
           name: Claude-OS-Agent-Windows
           path: |
+            release/Claude-OS-Agent-Setup.exe
+            release/Claude-OS-Agent-Portable.exe
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publish_release)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+          name: Claude OS Agent ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+          target_commitish: ${{ github.sha }}
+          generate_release_notes: true
+          files: |
             release/Claude-OS-Agent-Setup.exe
             release/Claude-OS-Agent-Portable.exe
