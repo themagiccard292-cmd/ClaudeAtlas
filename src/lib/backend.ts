@@ -13,6 +13,7 @@ export class BackendClient {
   private stopped = false
   onEvent: (e: BackendEvent) => void = () => {}
   onState: (s: ConnState) => void = () => {}
+  onFrame: (b: Blob) => void = () => {}
 
   connect(info: Pick<BackendInfo, 'port' | 'token'>): void {
     this.stopped = false
@@ -32,7 +33,12 @@ export class BackendClient {
       this.onState('open')
       this.send({ type: 'hello' })
     }
+    ws.binaryType = 'blob'
     ws.onmessage = (m) => {
+      if (typeof m.data !== 'string') {
+        this.onFrame(m.data as Blob) // live-view JPEG frame
+        return
+      }
       try {
         this.onEvent(JSON.parse(m.data as string) as BackendEvent)
       } catch {

@@ -1,4 +1,4 @@
-# Claude OS Agent
+# Claude OS Agent  `v1.1`
 
 A Windows desktop app (Electron + React) that looks like the Claude desktop app and lets Claude operate your PC —
 mouse, keyboard, screen, Windows UI Automation, PowerShell — **using your Claude Pro subscription, with no API key.**
@@ -18,6 +18,22 @@ mouse, keyboard, screen, Windows UI Automation, PowerShell — **using your Clau
 │   Voice  : faster-whisper (local STT) · edge-tts · push-to-talk · wake word    │
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
+
+## What's new in v1.1 — live view
+
+Watch Claude work in real time instead of reading screenshots:
+
+* **Live video of the screen** streamed from the backend (default 10 fps, 960 px, adjustable; unchanged frames are
+  skipped and slow viewers drop stale frames instead of lagging).
+* **Claude's cursor**: a labelled terracotta cursor that glides exactly where the real pointer goes, with click
+  ripples (left / right / double) and badges (“Typing 12 chars…”, “Scrolling ↓”, “ctrl+s”, “Dragging”).
+* **Three ways to watch** (Settings → General → Live view): a **floating always-on-top window** (default, resizable,
+  hidden from capture so it never mirrors itself), a **panel inside the app** (ideal with two monitors — only the
+  primary monitor is controlled), or off. Plus an optional **on-screen cursor overlay** drawn on your real desktop.
+* The live window and the HUD are click-through at the exact moment Claude clicks beneath them.
+
+Honest note: Claude itself still *perceives* through snapshots (Claude Code accepts images, not video); the live view
+is video for **you**. Action thumbnails in the chat are still there but collapsed.
 
 ## Why it signs in through Claude Code (and not an embedded claude.ai session)
 
@@ -67,11 +83,12 @@ ClaudeAtlas/
 │  │  ├─ claude_cli.py          locate/probe `claude`, auth status/login, billing-safe env, stream-json parser
 │  │  ├─ runner.py              run lifecycle: stop / pause / voice-interrupt (kill + --resume)
 │  │  ├─ safety.py              KillSwitch, global hotkey logic, risk rules, ApprovalManager
+│  │  ├─ live.py                live screen stream (binary WebSocket frames) · cursor events
 │  │  ├─ voice.py  hudshield.py local STT/TTS helpers; keeps the HUD from eating Claude's clicks
 │  │  └─ server.py  history.py  config.py  events.py  prompts.py  procutil.py
 │  ├─ backend.spec              PyInstaller spec    ·  build_backend.bat
 │  ├─ requirements*.txt
-│  └─ tests/                    122 tests incl. end-to-end against a fake `claude` CLI
+│  └─ tests/                    127 tests incl. end-to-end against a fake `claude` CLI
 ├─ scripts/make_icons.py        generates build/icon.ico + icon.png
 └─ build/                       icons
 ```
@@ -148,7 +165,7 @@ npm run test:backend
 ## Testing — what is and isn't verified
 
 Verified in a Linux container:
-* 122 backend tests (`npm run test:backend`): key handling, kill switch, hotkey logic, risk rules, approvals,
+* 127 backend tests (`npm run test:backend`): key handling, kill switch, hotkey logic, risk rules, approvals,
   screen scaling and coordinate mapping, input controller (incl. “drag is killed mid-way → button released”),
   UIA snapshot logic, PowerShell runner, stream-json parser, and **end-to-end runs through the real WebSocket API and
   the real MCP endpoint** against a fake `claude` CLI (approve/deny, stop, hotkey kill, voice interruption → `--resume`,

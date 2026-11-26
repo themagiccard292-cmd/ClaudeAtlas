@@ -23,6 +23,7 @@ from .events import Client, Hub
 from .history import ChatStore, WorkflowStore
 from .hudshield import HudShield
 from .input_control import InputController, InputDriver, ToolError
+from .live import LiveStreamer
 from .mcp_server import McpHandler, mount_mcp
 from .osagent_tools import OsTools
 from .runner import AgentRunner
@@ -79,6 +80,7 @@ class Services:
     runner: AgentRunner
     cli: CliManager
     stt: SpeechToText
+    live: LiveStreamer
     mcp: McpHandler
     ws_token: str
     mcp_token: str
@@ -124,7 +126,26 @@ def create_services(data_dir: Path, *, ws_token: str, mcp_token: str, drivers: D
             screen_driver = UnavailableDriver(os_errors[-1])
     uia_backend = drivers.uia if drivers.uia is not None else make_default_backend()
 
-    controller = InputController(input_driver, kill, shield=HudShield(), human_mouse=lambda: settings.value.human_mouse)
+    last_move = [0.0]
+
+    def observe(ev: dict) -> None:
+        """Pointer/keyboard activity -> normalised `agent.cursor` event (drives the live view + on-screen cursor)."""
+        import time as _t
+
+        kind = ev["kind"]
+        now = _t.monotonic()
+        if kind == "move":
+            if now - last_move[0] < 0.022:  # ~45 Hz is plenty for smooth interpolation
+                return
+            last_move[0] = now
+        try:
+            w, h = input_driver.size()
+        except Exception:  # noqa: BLE001
+            return
+        payload = {k: v for k, v in ev.items() if k not in ("x", "y")}
+        hub.emit_threadsafe("agent.cursor", fx=round(ev["x"] / w, 5), fy=round(ev["y"] / h, 5), **payload)
+
+    controller = InputController(input_driver, kill, shield=HudShield(), human_mouse=lambda: settings.value.human_mouse, observer=observe)
     screen = ScreenCapturer(screen_driver, max_edge=lambda: settings.value.screenshot_max_edge, quality=lambda: settings.value.jpeg_quality, draw_cursor=lambda: settings.value.draw_cursor)
     uia = UiaService(uia_backend, to_model=lambda x, y: screen.to_model(x, y, input_driver.size()))
     cli = CliManager(lambda: settings.value.claude_path)
@@ -144,13 +165,14 @@ def create_services(data_dir: Path, *, ws_token: str, mcp_token: str, drivers: D
     runner = AgentRunner(hub=hub, settings=settings, chats=chats, tools=tools, kill=kill, approvals=approvals, paths=paths, cli=cli, mcp_url=lambda: f"http://127.0.0.1:{svc_port()}/mcp", mcp_token=mcp_token)
     sink.runner = runner
     stt = SpeechToText(paths.models, lambda: settings.value.stt_model, lambda: settings.value.stt_language)
+    live = LiveStreamer(hub, screen_driver.grab, lambda: settings.value)
 
     holder: dict[str, int] = {"port": port}
 
     def svc_port() -> int:
         return holder["port"]
 
-    svc = Services(paths, settings, hub, kill, approvals, chats, workflows, controller, screen, uia, tools, runner, cli, stt, McpHandler(tools), ws_token, mcp_token, port=port, os_errors=os_errors)
+    svc = Services(paths, settings, hub, kill, approvals, chats, workflows, controller, screen, uia, tools, runner, cli, stt, live, McpHandler(tools), ws_token, mcp_token, port=port, os_errors=os_errors)
     svc._port_holder = holder  # type: ignore[attr-defined]
 
     if drivers.hotkeys:
@@ -180,11 +202,13 @@ def create_app(svc: Services) -> FastAPI:
     async def lifespan(app: FastAPI):
         hub.bind_loop(asyncio.get_running_loop())
         svc.runner._loop = asyncio.get_running_loop()
+        svc.live.start()
         if svc.hotkeys:
             svc.hotkeys_ok = await asyncio.to_thread(svc.hotkeys.start)
         svc.runner.on_finished = lambda chat_id, status, text: _maybe_speak(svc, chat_id, status, text)
         yield
         await svc.runner.stop("app closing")
+        await svc.live.stop()
         if svc.hotkeys:
             svc.hotkeys.stop()
         with contextlib.suppress(OSError):  # the per-launch MCP token must not outlive this process
@@ -372,6 +396,11 @@ async def dispatch(svc: Services, client: Client, msg: dict) -> None:
         _start_tts(svc, str(msg.get("text", "")))
     elif t == "tts.cancel":
         _cancel_tts(svc)
+
+    elif t == "live.subscribe":
+        client.live = True
+    elif t == "live.unsubscribe":
+        client.live = False
 
     elif t == "screen.info":
         hub.send_to(client, "screen.info", **screen_info(svc))

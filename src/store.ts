@@ -16,6 +16,11 @@ export const DEFAULT_SETTINGS: Settings = {
   human_mouse: true,
   draw_cursor: true,
   hud_enabled: true,
+  live_view: 'floating',
+  live_fps: 10,
+  live_width: 960,
+  live_quality: 55,
+  agent_cursor: true,
   speak_responses: false,
   stt_model: 'base.en',
   stt_language: 'en',
@@ -49,7 +54,7 @@ interface State {
   voice: { mode: VoiceMode; level: number; micError: string; lastTranscript: string }
   hud: { status: string; steps: number }
   toasts: Toast[]
-  ui: { sidebarOpen: boolean; settingsOpen: boolean; settingsTab: string; workflowDraft: { name: string; prompt: string; id?: string } | null }
+  ui: { sidebarOpen: boolean; settingsOpen: boolean; settingsTab: string; workflowDraft: { name: string; prompt: string; id?: string } | null; livePanel: boolean }
 
   setConn(c: ConnState): void
   setBackend(b: BackendInfo | null): void
@@ -80,7 +85,7 @@ export const useStore = create<State>((set, get) => ({
   voice: { mode: 'idle', level: 0, micError: '', lastTranscript: '' },
   hud: { status: '', steps: 0 },
   toasts: [],
-  ui: { sidebarOpen: true, settingsOpen: false, settingsTab: 'general', workflowDraft: null },
+  ui: { sidebarOpen: true, settingsOpen: false, settingsTab: 'general', workflowDraft: null, livePanel: false },
 
   setConn: (conn) => set({ conn }),
   setBackend: (backend) => set({ backend }),
@@ -168,6 +173,9 @@ export const useStore = create<State>((set, get) => ({
         break
       case 'voice.status':
         set({ voice: { ...s.voice, mode: e.state === 'transcribing' ? 'transcribing' : s.voice.mode === 'transcribing' ? 'idle' : s.voice.mode } })
+        break
+      case 'live.error':
+        window.dispatchEvent(new CustomEvent('live-error', { detail: e.message as string }))
         break
       case 'error':
         s.toast(e.message as string, 'error')

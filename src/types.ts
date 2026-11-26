@@ -70,6 +70,11 @@ export interface Settings {
   human_mouse: boolean
   draw_cursor: boolean
   hud_enabled: boolean
+  live_view: 'floating' | 'panel' | 'off'
+  live_fps: number
+  live_width: number
+  live_quality: number
+  agent_cursor: boolean
   speak_responses: boolean
   stt_model: string
   stt_language: string

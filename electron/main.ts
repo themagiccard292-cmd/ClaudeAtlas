@@ -3,10 +3,16 @@ import * as path from 'path'
 import { BackendManager } from './backend'
 
 const DEV_URL = !app.isPackaged && process.env.ELECTRON_DEV === '1' ? 'http://localhost:5173' : null
-const HUD_TITLE = 'Claude OS Agent HUD' // the Python side finds the HUD by this exact title (click-through shield)
+const HUD_TITLE = 'Claude OS Agent HUD' // the Python side finds these by exact title (click-through shield)
+const LIVE_TITLE = 'Claude OS Agent Live'
 
 let mainWin: BrowserWindow | null = null
 let hudWin: BrowserWindow | null = null
+let liveWin: BrowserWindow | null = null
+let overlayWin: BrowserWindow | null = null
+let minimizedByUs = false
+let liveSize: 's' | 'm' | 'l' = 'm'
+const LIVE_DIMS = { s: [360, 238], m: [500, 322], l: [760, 478] } as const
 let backend: BackendManager | null = null
 let quitting = false
 
@@ -112,22 +118,89 @@ function createHud(): BrowserWindow {
   return win
 }
 
-function setHud(on: boolean): void {
-  if (on) {
-    if (!hudWin) hudWin = createHud()
-    const win = hudWin
-    const show = () => win.showInactive()
-    if (win.webContents.isLoading()) win.webContents.once('did-finish-load', show)
-    else show()
-    if (mainWin && !mainWin.isMinimized()) mainWin.minimize()
-  } else {
-    hudWin?.hide()
+function auxWebPrefs() {
+  return {
+    preload: path.join(__dirname, 'preload.js'),
+    contextIsolation: true,
+    nodeIntegration: false,
+    sandbox: true,
+    backgroundThrottling: false,
+  }
+}
+
+/** Floating "Claude's screen" window: live video + Claude's cursor. Hidden from capture (no mirror-in-mirror). */
+function createLive(): BrowserWindow {
+  const wa = screen.getPrimaryDisplay().workArea
+  const [w, h] = LIVE_DIMS[liveSize]
+  const win = new BrowserWindow({
+    width: w, height: h, x: wa.x + wa.width - w - 20, y: wa.y + 20,
+    frame: false, transparent: true, resizable: false, skipTaskbar: true, alwaysOnTop: true,
+    focusable: false, hasShadow: false, show: false, title: LIVE_TITLE, webPreferences: auxWebPrefs(),
+  })
+  win.setAlwaysOnTop(true, 'screen-saver')
+  win.setContentProtection(true)
+  win.on('page-title-updated', (e) => e.preventDefault())
+  hardenWebContents(win)
+  loadRenderer(win, '/live')
+  win.on('closed', () => { liveWin = null })
+  return win
+}
+
+/** Full-screen, click-through overlay on the primary display that draws Claude's cursor + click ripples. */
+function createOverlay(): BrowserWindow {
+  const b = screen.getPrimaryDisplay().bounds
+  const win = new BrowserWindow({
+    x: b.x, y: b.y, width: b.width, height: b.height, frame: false, transparent: true, resizable: false, movable: false,
+    skipTaskbar: true, alwaysOnTop: true, focusable: false, hasShadow: false, show: false, title: 'Claude OS Agent Overlay', webPreferences: auxWebPrefs(),
+  })
+  win.setAlwaysOnTop(true, 'screen-saver')
+  win.setIgnoreMouseEvents(true) // never intercepts a click
+  win.setContentProtection(true)
+  win.on('page-title-updated', (e) => e.preventDefault())
+  hardenWebContents(win)
+  loadRenderer(win, '/overlay')
+  win.on('closed', () => { overlayWin = null })
+  return win
+}
+
+function showWhenLoaded(win: BrowserWindow): void {
+  const show = () => win.showInactive()
+  if (win.webContents.isLoading()) win.webContents.once('did-finish-load', show)
+  else show()
+}
+
+interface RunUi { active: boolean; hud: boolean; live: boolean; overlay: boolean; minimizeMain: boolean }
+
+/** One call from the renderer whenever the agent starts/stops or the related settings change. */
+function setRunUi(o: RunUi): void {
+  const want = (on: boolean, get: () => BrowserWindow | null, make: () => BrowserWindow, set: (w: BrowserWindow) => void) => {
+    if (on && o.active) {
+      let w = get()
+      if (!w) { w = make(); set(w) }
+      showWhenLoaded(w)
+    } else get()?.hide()
+  }
+  want(o.hud, () => hudWin, createHud, (w) => { hudWin = w })
+  want(o.live, () => liveWin, createLive, (w) => { liveWin = w })
+  want(o.overlay, () => overlayWin, createOverlay, (w) => { overlayWin = w })
+  if (o.active && o.minimizeMain) {
+    if (mainWin && !mainWin.isMinimized()) { mainWin.minimize(); minimizedByUs = true }
+  } else if (minimizedByUs) {
+    minimizedByUs = false
     if (mainWin) {
       if (mainWin.isMinimized()) mainWin.restore()
       mainWin.show()
       mainWin.focus()
     }
   }
+}
+
+function setLiveSize(size: 's' | 'm' | 'l'): void {
+  liveSize = size
+  if (!liveWin) return
+  const wa = screen.getPrimaryDisplay().workArea
+  const [w, h] = LIVE_DIMS[size]
+  liveWin.setBounds({ x: wa.x + wa.width - w - 20, y: wa.y + 20, width: w, height: h })
 }
 
 function applyTitleBarTheme(): void {
@@ -156,7 +229,8 @@ function registerIpc(): void {
     nativeTheme.themeSource = theme
     applyTitleBarTheme()
   })
-  ipcMain.handle('hud:set', (_e, on: boolean) => setHud(!!on))
+  ipcMain.handle('run:ui', (_e, o: RunUi) => setRunUi(o))
+  ipcMain.handle('live:size', (_e, size: 's' | 'm' | 'l') => setLiveSize(size))
   ipcMain.handle('app:info', () => ({ version: app.getVersion(), dataDir: app.getPath('userData'), packaged: app.isPackaged }))
   ipcMain.on('voice:level', (_e, payload) => hudWin?.webContents.send('voice:level', payload))
 }
@@ -173,7 +247,7 @@ app.whenReady().then(async () => {
 
   backend = new BackendManager(app.getPath('userData'))
   backend.on('status', (info) => {
-    for (const w of [mainWin, hudWin]) w?.webContents.send('backend:status', info)
+    for (const w of [mainWin, hudWin, liveWin, overlayWin]) w?.webContents.send('backend:status', info)
   })
   void backend.start() // renderer shows "starting engine…" until the sidecar reports ready
 
