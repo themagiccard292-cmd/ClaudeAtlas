@@ -44,6 +44,7 @@ interface State {
   settings: Settings
   auth: AuthStatus | null
   login: LoginFlow
+  install: { active: boolean; lines: string[]; error: string }
   chats: ChatMeta[]
   workflows: Workflow[]
   activeChatId: string | null
@@ -75,6 +76,7 @@ export const useStore = create<State>((set, get) => ({
   settings: DEFAULT_SETTINGS,
   auth: null,
   login: { active: false, url: '', error: '' },
+  install: { active: false, lines: [], error: '' },
   chats: [],
   workflows: [],
   activeChatId: null,
@@ -121,6 +123,15 @@ export const useStore = create<State>((set, get) => ({
         break
       case 'auth.login.done':
         set({ login: { active: false, url: '', error: e.ok ? '' : (e.detail as string) || 'Sign-in did not complete.' } })
+        break
+      case 'auth.install.started':
+        set({ install: { active: !!e.started, lines: [], error: '' } })
+        break
+      case 'auth.install.line':
+        set({ install: { ...s.install, lines: [...s.install.lines.slice(-5), e.line as string] } })
+        break
+      case 'auth.install.done':
+        set({ install: { active: false, lines: s.install.lines, error: e.ok ? '' : (e.detail as string) || 'Installation did not finish.' } })
         break
       case 'chats':
         set({ chats: e.chats as ChatMeta[] })

@@ -1,0 +1,27 @@
+name: Build Windows installer
+
+# Builds in the cloud so nobody needs Node.js or Python installed.
+# Run it from the Actions tab (or push a tag like v1.1.0) and download the artifacts.
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - name: Build (backend.exe + UI + installers)
+        shell: cmd
+        run: call build.bat
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Claude-OS-Agent-Windows
+          path: |
+            release/Claude-OS-Agent-Setup.exe
+            release/Claude-OS-Agent-Portable.exe

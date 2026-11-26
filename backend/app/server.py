@@ -308,6 +308,19 @@ async def dispatch(svc: Services, client: Client, msg: dict) -> None:
         if not started:
             await refresh_auth(svc, True)  # CLI missing -> status explains how to install it
 
+    elif t == "auth.install":
+        def on_line(line: str) -> None:
+            hub.emit_threadsafe("auth.install.line", line=line[:300])
+
+        def on_done(ok: bool, detail: str) -> None:
+            hub.emit_threadsafe("auth.install.done", ok=ok, detail=detail)
+            loop = hub._loop
+            if loop:
+                asyncio.run_coroutine_threadsafe(refresh_auth(svc, True), loop)
+
+        started = await asyncio.to_thread(svc.cli.start_install, on_line, on_done)
+        hub.send_to(client, "auth.install.started", started=started)
+
     elif t == "auth.cancel":
         svc.cli.cancel_login()
 

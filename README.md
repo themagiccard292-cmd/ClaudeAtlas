@@ -121,8 +121,12 @@ The result needs **no Python or Node on the target PC**. The backend is one-dir 
 instantly and avoids the antivirus false-positives of self-extracting one-file exes.
 Unsigned builds trigger SmartScreen; sign them for distribution.
 
-**Target PC prerequisite:** Claude Code (`irm https://claude.ai/install.ps1 | iex`, see
-<https://code.claude.com/docs/en/setup>). The app's first screen walks the user through it and the sign-in.
+**End users need nothing pre-installed** (no Python, Node or API key). If Claude Code is missing, the first screen has
+an **Install Claude Code automatically** button that runs Anthropic's official installer
+(`irm https://claude.ai/install.ps1 | iex`, no Node needed), then moves straight on to sign-in.
+
+**No build tools on your PC either:** run the **Build Windows installer** GitHub Action (Actions tab → Run workflow,
+or push a `v*` tag) and download `Claude-OS-Agent-Setup.exe` / `…-Portable.exe` from the run's artifacts.
 
 ### Development
 
