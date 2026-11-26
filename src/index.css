@@ -1,0 +1,100 @@
+@import "tailwindcss";
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/newsreader";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --c-bg: #F5F4EF;
+  --c-soft: #EEECE4;
+  --c-card: #FFFFFF;
+  --c-hover: #E8E5DA;
+  --c-line: #DEDACD;
+  --c-ink: #1F1E1D;
+  --c-muted: #6F6E68;
+  --c-accent: #C96442;
+  --c-accent-hover: #B5573A;
+  --c-accent-fg: #FFFFFF;
+  --c-ok: #3C8A58;
+  --c-warn: #B07312;
+  --c-danger: #C23B2B;
+}
+.dark {
+  --c-bg: #262624;
+  --c-soft: #1F1E1D;
+  --c-card: #30302E;
+  --c-hover: #3A3A37;
+  --c-line: #43433F;
+  --c-ink: #F5F4EE;
+  --c-muted: #A3A19A;
+  --c-accent: #D97757;
+  --c-accent-hover: #E58C6E;
+  --c-accent-fg: #1F1E1D;
+  --c-ok: #6FBF8A;
+  --c-warn: #E0AF55;
+  --c-danger: #EF7B6D;
+}
+
+@theme inline {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+  --font-serif: "Newsreader Variable", "Iowan Old Style", Georgia, serif;
+  --color-bg: var(--c-bg);
+  --color-soft: var(--c-soft);
+  --color-card: var(--c-card);
+  --color-hover: var(--c-hover);
+  --color-line: var(--c-line);
+  --color-ink: var(--c-ink);
+  --color-muted: var(--c-muted);
+  --color-accent: var(--c-accent);
+  --color-accent-hover: var(--c-accent-hover);
+  --color-accent-fg: var(--c-accent-fg);
+  --color-ok: var(--c-ok);
+  --color-warn: var(--c-warn);
+  --color-danger: var(--c-danger);
+}
+
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  background: var(--c-bg);
+  color: var(--c-ink);
+  font-family: var(--font-sans);
+  font-size: 14.5px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  user-select: none;
+}
+html.hud, html.hud body { background: transparent; }
+.selectable, .selectable * { user-select: text; }
+.drag { -webkit-app-region: drag; }
+.no-drag { -webkit-app-region: no-drag; }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--c-line); border-radius: 8px; border: 2px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background: var(--c-muted); background-clip: content-box; border: 2px solid transparent; }
+::selection { background: color-mix(in srgb, var(--c-accent) 30%, transparent); }
+
+/* NOTE: no unlayered `button { color/font }` rules here - unlayered CSS beats Tailwind v4's layered utilities. */
+button:focus-visible, textarea:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid color-mix(in srgb, var(--c-accent) 70%, transparent); outline-offset: 2px; }
+
+@keyframes pulse-ring { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--c-accent) 55%, transparent); } 100% { box-shadow: 0 0 0 10px transparent; } }
+.pulse-ring { animation: pulse-ring 1.6s ease-out infinite; }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.rise { animation: rise .28s ease-out both; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 1.1s linear infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.caret::after { content: "▍"; margin-left: 2px; color: var(--c-accent); animation: blink 1s steps(1) infinite; }
+
+/* markdown */
+.md > :first-child { margin-top: 0; } .md > :last-child { margin-bottom: 0; }
+.md p { margin: .6em 0; } .md ul, .md ol { margin: .6em 0; padding-left: 1.4em; } .md ul { list-style: disc; } .md ol { list-style: decimal; }
+.md li { margin: .25em 0; } .md a { color: var(--c-accent); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.md h1, .md h2, .md h3 { font-family: var(--font-serif); font-weight: 600; margin: 1em 0 .4em; line-height: 1.25; }
+.md h1 { font-size: 1.4em; } .md h2 { font-size: 1.22em; } .md h3 { font-size: 1.08em; }
+.md code { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: .88em; background: var(--c-hover); padding: .12em .38em; border-radius: 6px; }
+.md pre { margin: .7em 0; background: var(--c-soft); border: 1px solid var(--c-line); border-radius: 12px; padding: 12px 14px; overflow-x: auto; }
+.md pre code { background: none; padding: 0; font-size: .85em; }
+.md blockquote { margin: .6em 0; padding-left: 12px; border-left: 3px solid var(--c-line); color: var(--c-muted); }
+.md table { border-collapse: collapse; margin: .7em 0; font-size: .92em; } .md th, .md td { border: 1px solid var(--c-line); padding: 6px 10px; } .md th { background: var(--c-soft); }
