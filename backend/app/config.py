@@ -43,6 +43,7 @@ class Settings(BaseModel):
     live_fps: int = Field(10, ge=2, le=20)
     live_width: int = Field(960, ge=480, le=1920)
     live_quality: int = Field(55, ge=30, le=90)
+    screen_glow: bool = True  # orange glow around the screen while Claude is working
     agent_cursor: bool = True  # draw Claude's cursor + click ripples on the real desktop
     # --- voice (100% local / keyless)
     speak_responses: bool = False

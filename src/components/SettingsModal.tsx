@@ -73,6 +73,9 @@ export function SettingsModal() {
               <Row title="Live view" hint="Watch Claude control your screen in real time: a floating always-on-top window, a panel inside this app (great with two monitors), or off.">
                 <Select label="Live view" value={settings.live_view} onChange={(v) => set({ live_view: v })} options={[['floating', 'Floating window'], ['panel', 'Panel in this window'], ['off', 'Off']]} />
               </Row>
+              <Row title="Orange glow around the screen" hint="A glowing orange edge shows whenever Claude is controlling your PC. Not visible to Claude.">
+                <Toggle label="Screen glow" checked={settings.screen_glow} onChange={(v) => set({ screen_glow: v })} />
+              </Row>
               <Row title="Show Claude’s cursor on my screen" hint="A labelled cursor and click ripples drawn over your real desktop so you can follow what it does.">
                 <Toggle label="Claude cursor overlay" checked={settings.agent_cursor} onChange={(v) => set({ agent_cursor: v })} />
               </Row>
@@ -174,6 +177,10 @@ export function SettingsModal() {
           {tab === 'about' && (
             <div className="space-y-3 py-4 text-[13.5px] leading-relaxed">
               <div className="font-serif text-xl font-semibold">Claude OS Agent {ready?.version}</div>
+              <div className="flex items-center gap-3">
+                <Button size="sm" onClick={() => void window.api?.checkForUpdates()}>Check for updates</Button>
+                <span className="text-[12.5px] text-muted">Updates download automatically and install when you restart (installed version only).</span>
+              </div>
               <p className="text-muted">Operates Windows through the official Claude Code app signed in with your Claude subscription. OS control (mouse, keyboard, screen, UI Automation, PowerShell) runs locally in a sidecar process and is exposed to Claude Code over a private, token-protected local MCP bridge.</p>
               <div className="rounded-xl border border-line bg-card p-3 font-mono text-[12px] text-muted">
                 screen: {ready?.screen.width}×{ready?.screen.height} → screenshots {ready?.screen.shot_width}×{ready?.screen.shot_height}

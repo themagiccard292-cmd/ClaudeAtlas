@@ -35,6 +35,15 @@ Watch Claude work in real time instead of reading screenshots:
 Honest note: Claude itself still *perceives* through snapshots (Claude Code accepts images, not video); the live view
 is video for **you**. Action thumbnails in the chat are still there but collapsed.
 
+## v1.2 — orange glow + automatic updates
+
+* **Orange glow** around the whole screen while Claude is in control (pulses; dims while paused; invisible to Claude;
+  Settings → General → *Orange glow around the screen*).
+* **Automatic updates** (installed build, via GitHub Releases): the app checks on start and every 4 h, downloads in
+  the background and shows **Restart to update** (it also installs when the app is next closed). Publishing an update =
+  run **Build Windows installer** with a higher tag (e.g. `v1.2.1`); users get it automatically.
+  The **portable exe cannot self-update**, and builds before v1.2 have no updater — install v1.2 once, manually.
+
 ## Why it signs in through Claude Code (and not an embedded claude.ai session)
 
 The brief asked for an embedded `claude.ai` login with cookie capture and a DOM/network interceptor. **That is not

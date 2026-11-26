@@ -1,4 +1,4 @@
-import type { BackendInfo } from './types'
+import type { BackendInfo, UpdateStatus } from './types'
 
 type Unsub = () => void
 
@@ -13,6 +13,9 @@ declare global {
       setTheme(theme: 'light' | 'dark' | 'system'): Promise<void>
       setRunUi(o: { active: boolean; hud: boolean; live: boolean; overlay: boolean; minimizeMain: boolean }): Promise<void>
       setLiveSize(size: 's' | 'm' | 'l'): Promise<void>
+      onUpdateStatus(cb: (s: UpdateStatus) => void): Unsub
+      checkForUpdates(): Promise<void>
+      installUpdate(): Promise<void>
       appInfo(): Promise<{ version: string; dataDir: string; packaged: boolean }>
       sendVoiceLevel(level: number, mode: string): void
       onVoiceLevel(cb: (v: { level: number; mode: string }) => void): Unsub
