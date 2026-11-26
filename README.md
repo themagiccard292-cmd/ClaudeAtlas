@@ -95,7 +95,7 @@ ClaudeAtlas/
 
 ## Build the .exe
 
-On a Windows 10/11 x64 machine with **Node.js 22+** and **Python 3.10+** on PATH:
+On a Windows 10/11 x64 machine with **Node.js 22+** and **Python 3.10–3.13** (3.12 recommended; 3.14+ is not supported yet) on PATH:
 
 ```bat
 build.bat

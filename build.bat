@@ -6,7 +6,7 @@ rem  Produces (in .\release):
 rem     Claude-OS-Agent-Setup.exe      NSIS installer
 rem     Claude-OS-Agent-Portable.exe   single-file portable build
 rem
-rem  Build machine needs: Windows 10/11 x64, Node.js 22+, Python 3.10+ (both on PATH).
+rem  Build machine needs: Windows 10/11 x64, Node.js 22+, Python 3.10-3.13 (both on PATH).
 rem  The END USER needs neither - nor an API key (they sign in with Claude Pro via Claude Code).
 rem ===========================================================================
 setlocal EnableExtensions
@@ -31,13 +31,13 @@ if errorlevel 1 (
 )
 set "PY="
 where py >nul 2>nul
-if not errorlevel 1 set "PY=py -3"
+if not errorlevel 1 set "PY=py"
 if not defined PY (
   where python >nul 2>nul
   if not errorlevel 1 set "PY=python"
 )
 if not defined PY (
-  echo [ERROR] Python 3.10+ was not found. Install it from https://www.python.org/downloads/ ^(tick "Add python.exe to PATH"^).
+  echo [ERROR] Python 3.10-3.13 was not found. Install it from https://www.python.org/downloads/ ^(tick "Add python.exe to PATH"^).
   goto :fail
 )
 
