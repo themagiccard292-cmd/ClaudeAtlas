@@ -2,7 +2,7 @@
 
 A Windows desktop app (Electron + React) that looks like the Claude desktop app and lets Claude operate your PC —
 mouse, keyboard, screen, Windows UI Automation, PowerShell — **using your Claude Pro subscription, with no API key.**
-
+Dev speaking: IGNORE THIS AND DOWNLOAD THE EXE FILE
 ```
 ┌──────────────────────── Electron (React UI, Mini-HUD) ────────────────────────┐
 │  chat · action accordions · voice visualizer · approvals · settings · sign-in │
