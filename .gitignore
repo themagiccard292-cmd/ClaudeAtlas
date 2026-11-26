@@ -1,0 +1,12 @@
+node_modules/
+dist/
+dist-electron/
+release/
+backend/dist/
+backend/build/
+backend/.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.log
+.env
