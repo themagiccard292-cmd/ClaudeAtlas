@@ -15,6 +15,27 @@ class Client:
         self.ws = ws
         self.queue: asyncio.Queue[str | None] = asyncio.Queue(maxsize=2000)
         self.task: asyncio.Task | None = None
+        self.live = False  # subscribed to the live screen stream
+        self.frame_task: asyncio.Task | None = None
+        self._frame: bytes | None = None
+        self._frame_evt = asyncio.Event()
+
+    def offer_frame(self, data: bytes) -> None:
+        """Latest-frame-wins: a slow client skips frames instead of building a backlog (= lag)."""
+        self._frame = data
+        self._frame_evt.set()
+
+    async def pump_frames(self) -> None:
+        while True:
+            await self._frame_evt.wait()
+            self._frame_evt.clear()
+            data, self._frame = self._frame, None
+            if data is None:
+                continue
+            try:
+                await self.ws.send_bytes(data)
+            except Exception:
+                return
 
     async def pump(self) -> None:
         while True:
@@ -40,6 +61,7 @@ class Hub:
     async def add(self, ws: Any) -> Client:
         c = Client(ws)
         c.task = asyncio.create_task(c.pump())
+        c.frame_task = asyncio.create_task(c.pump_frames())
         self.clients.add(c)
         return c
 
@@ -47,8 +69,9 @@ class Hub:
         self.clients.discard(c)
         with contextlib.suppress(Exception):
             c.queue.put_nowait(None)
-        if c.task:
-            c.task.cancel()
+        for t in (c.task, c.frame_task):
+            if t:
+                t.cancel()
 
     def emit(self, type_: str, **payload: Any) -> None:
         """Queue an event for all clients. Must be called on the event-loop thread."""

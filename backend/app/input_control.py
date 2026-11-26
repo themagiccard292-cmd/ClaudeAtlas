@@ -151,11 +151,13 @@ class PyAutoGuiDriver:
 class InputController:
     WHEEL_NOTCH = 120  # one physical wheel click on Windows
 
-    def __init__(self, driver: InputDriver, kill: KillSwitch, shield=None, human_mouse: Callable[[], bool] = lambda: True):
+    def __init__(self, driver: InputDriver, kill: KillSwitch, shield=None, human_mouse: Callable[[], bool] = lambda: True, observer: Callable[[dict], None] | None = None):
         self.d = driver
         self.kill = kill
         self.shield = shield
         self._human = human_mouse
+        self.observer = observer  # called with {kind, x, y, ...} from worker threads; must be cheap + thread-safe
+        self._last = (0, 0)
         self._lock = threading.RLock()
         self._down_keys: list[str] = []
         self._down_buttons: set[str] = set()
@@ -173,6 +175,15 @@ class InputController:
         self.kill.gate()
         self.kill.wait(seconds)
 
+    def _notify(self, kind: str, x: int | None = None, y: int | None = None, **extra) -> None:
+        if x is not None and y is not None:
+            self._last = (x, y)
+        if self.observer:
+            try:
+                self.observer({"kind": kind, "x": self._last[0], "y": self._last[1], **extra})
+            except Exception:  # never let UI plumbing break an action
+                pass
+
     def release_all(self) -> None:
         """Let go of anything we are holding so a halt never leaves a stuck key/button."""
         for k in reversed(self._down_keys):
@@ -189,11 +200,13 @@ class InputController:
         self.kill.gate()
         if not self._human():
             self.d.move_to(x, y)
+            self._notify("move", x, y)
             return
         x0, y0 = self.d.position()
         dist = math.hypot(x - x0, y - y0)
         if dist < 6:
             self.d.move_to(x, y)
+            self._notify("move", x, y)
             return
         duration = min(0.4, 0.08 + dist / 4500)
         steps = max(4, int(duration / 0.012))
@@ -201,9 +214,12 @@ class InputController:
             t = i / steps
             e = 1 - (1 - t) ** 3  # ease-out cubic
             self.kill.gate()
-            self.d.move_to(round(x0 + (x - x0) * e), round(y0 + (y - y0) * e))
+            sx, sy = round(x0 + (x - x0) * e), round(y0 + (y - y0) * e)
+            self.d.move_to(sx, sy)
+            self._notify("move", sx, sy)
             self.kill.wait(duration / steps)
         self.d.move_to(x, y)
+        self._notify("move", x, y)
 
     @contextlib.contextmanager
     def _modifiers(self, modifiers: list[str]):
@@ -250,6 +266,7 @@ class InputController:
             self._glide(px, py)
             with self._shield(px, py), self._modifiers(mods):
                 self.kill.gate()
+                self._notify("click", px, py, button=button, clicks=clicks)
                 self.d.click(px, py, button, clicks)
             return px, py
 
@@ -263,6 +280,7 @@ class InputController:
                 self.kill.gate()
                 self.d.mouse_down("left")
                 self._down_buttons.add("left")
+                self._notify("drag_start", ax, ay)
                 try:
                     self._sleep(0.08)
                     dist = math.hypot(bx - ax, by - ay)
@@ -270,12 +288,15 @@ class InputController:
                     for i in range(1, steps + 1):
                         self.kill.gate()
                         t = i / steps
-                        self.d.move_to(round(ax + (bx - ax) * t), round(ay + (by - ay) * t))
+                        dx, dy = round(ax + (bx - ax) * t), round(ay + (by - ay) * t)
+                        self.d.move_to(dx, dy)
+                        self._notify("move", dx, dy, dragging=True)
                         self.kill.wait(0.012)
                     self._sleep(0.1)
                 finally:
                     self.d.mouse_up("left")
                     self._down_buttons.discard("left")
+                    self._notify("drag_end")
 
     def mouse_button(self, down: bool, button: str = "left") -> None:
         with self._lock:
@@ -296,6 +317,7 @@ class InputController:
             if x is not None and y is not None:
                 px, py = self._clamp(x, y)
                 self._glide(px, py)
+            self._notify("scroll", direction=direction, amount=amount)
             with self._shield(px, py):
                 for _ in range(amount):
                     self.kill.gate()
@@ -313,6 +335,7 @@ class InputController:
     # -- keyboard -------------------------------------------------------------------
     def type_text(self, text: str) -> None:
         with self._lock:
+            self._notify("type", n=len(text))
             for i in range(0, len(text), 16):  # chunked so the kill switch can interrupt long text
                 self.kill.gate()
                 self.d.type_text(text[i : i + 16])
@@ -322,6 +345,7 @@ class InputController:
         keys = normalize_combo(combo)
         repeat = max(1, min(int(repeat), 100))
         with self._lock:
+            self._notify("key", keys="+".join(keys))
             for _ in range(repeat):
                 pressed: list[str] = []
                 try:

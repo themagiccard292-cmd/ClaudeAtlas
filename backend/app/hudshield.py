@@ -12,14 +12,15 @@ import contextlib
 import sys
 
 HUD_TITLE = "Claude OS Agent HUD"
+LIVE_TITLE = "Claude OS Agent Live"
 GWL_EXSTYLE = -20
 WS_EX_TRANSPARENT = 0x20
 WS_EX_LAYERED = 0x80000
 
 
 class HudShield:
-    def __init__(self, title: str = HUD_TITLE, margin: int = 10) -> None:
-        self.title = title
+    def __init__(self, titles: tuple[str, ...] = (HUD_TITLE, LIVE_TITLE), margin: int = 10) -> None:
+        self.titles = titles
         self.margin = margin
 
     @contextlib.contextmanager
@@ -40,19 +41,21 @@ class HudShield:
         user32.IsWindowVisible.argtypes = [wintypes.HWND]
         user32.GetWindowRect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]
 
-        hwnd = user32.FindWindowW(None, self.title)
-        if not hwnd or not user32.IsWindowVisible(hwnd):
-            yield
-            return
-        rect = wintypes.RECT()
-        user32.GetWindowRect(hwnd, ctypes.byref(rect))
         m = self.margin
-        if not (rect.left - m <= x <= rect.right + m and rect.top - m <= y <= rect.bottom + m):
-            yield
-            return
-        original = user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
-        user32.SetWindowLongW(hwnd, GWL_EXSTYLE, original | WS_EX_TRANSPARENT | WS_EX_LAYERED)
+        restore: list[tuple[int, int]] = []
+        for title in self.titles:
+            hwnd = user32.FindWindowW(None, title)
+            if not hwnd or not user32.IsWindowVisible(hwnd):
+                continue
+            rect = wintypes.RECT()
+            user32.GetWindowRect(hwnd, ctypes.byref(rect))
+            if not (rect.left - m <= x <= rect.right + m and rect.top - m <= y <= rect.bottom + m):
+                continue
+            original = user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
+            user32.SetWindowLongW(hwnd, GWL_EXSTYLE, original | WS_EX_TRANSPARENT | WS_EX_LAYERED)
+            restore.append((hwnd, original))
         try:
             yield
         finally:
-            user32.SetWindowLongW(hwnd, GWL_EXSTYLE, original)
+            for hwnd, original in restore:
+                user32.SetWindowLongW(hwnd, GWL_EXSTYLE, original)

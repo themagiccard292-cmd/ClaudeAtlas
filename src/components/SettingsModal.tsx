@@ -70,6 +70,18 @@ export function SettingsModal() {
               <Row title="Thinking effort" hint="Higher = more careful but slower and uses more of your plan’s limit.">
                 <Select label="Effort" value={settings.effort} onChange={(v) => set({ effort: v })} options={[['', 'Default'], ['low', 'Low'], ['medium', 'Medium'], ['high', 'High'], ['xhigh', 'Extra high'], ['max', 'Max']]} />
               </Row>
+              <Row title="Live view" hint="Watch Claude control your screen in real time: a floating always-on-top window, a panel inside this app (great with two monitors), or off.">
+                <Select label="Live view" value={settings.live_view} onChange={(v) => set({ live_view: v })} options={[['floating', 'Floating window'], ['panel', 'Panel in this window'], ['off', 'Off']]} />
+              </Row>
+              <Row title="Show Claude’s cursor on my screen" hint="A labelled cursor and click ripples drawn over your real desktop so you can follow what it does.">
+                <Toggle label="Claude cursor overlay" checked={settings.agent_cursor} onChange={(v) => set({ agent_cursor: v })} />
+              </Row>
+              <Row title="Live view smoothness" hint="Higher = smoother video, more CPU.">
+                <Select label="Live fps" value={settings.live_fps} onChange={(v) => set({ live_fps: v })} options={[[5, '5 fps'], [10, '10 fps (default)'], [15, '15 fps'], [20, '20 fps']]} />
+              </Row>
+              <Row title="Live view quality">
+                <Select label="Live width" value={settings.live_width} onChange={(v) => set({ live_width: v })} options={[[640, 'Low (640 px)'], [960, 'Medium (960 px)'], [1280, 'High (1280 px)'], [1920, 'Full (1920 px)']]} />
+              </Row>
               <Row title="Floating Mini-HUD while Claude works" hint="Shrinks this window into an always-on-top pill with a STOP / TAKE OVER button.">
                 <Toggle label="Mini-HUD" checked={settings.hud_enabled} onChange={(v) => set({ hud_enabled: v })} />
               </Row>

@@ -1,20 +1,25 @@
-import { AlertTriangle, Info, LoaderCircle, PanelLeft, X } from 'lucide-react'
+import { AlertTriangle, Info, LoaderCircle, Monitor, PanelLeft, X } from 'lucide-react'
 import { useEffect } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { ApprovalModal } from './components/ApprovalModal'
 import { ChatView } from './components/ChatView'
 import { Hud } from './components/Hud'
+import { LiveView } from './components/LiveView'
+import { LiveWindow } from './components/LiveWindow'
+import { Overlay } from './components/Overlay'
 import { PromptBar } from './components/PromptBar'
 import { SettingsModal } from './components/SettingsModal'
 import { SignIn } from './components/SignIn'
 import { Sidebar, WorkflowDialog } from './components/Sidebar'
 import { ClaudeMark, IconButton, cx } from './components/ui'
 import { client } from './lib/backend'
+import { liveBus } from './lib/live'
 import { voice } from './lib/voice'
 import { useStore } from './store'
 import type { BackendInfo } from './types'
 
-const isHud = () => location.hash.startsWith('#/hud')
+const route = () => (location.hash.startsWith('#/hud') ? 'hud' : location.hash.startsWith('#/live') ? 'live' : location.hash.startsWith('#/overlay') ? 'overlay' : 'main')
+const isMain = () => route() === 'main'
 
 /** Connect to the Python backend (port/token come from Electron; `?port=&token=` allows browser dev/testing). */
 function useBootstrap(): void {
@@ -29,11 +34,13 @@ function useBootstrap(): void {
       }
     }
     client.onState = (c) => st().setConn(c)
+    client.onFrame = (b) => liveBus.setFrame(b)
     client.onEvent = (e) => {
-      if (!isHud()) voice.handleBackendEvent(e)
+      if (isMain()) voice.handleBackendEvent(e)
+      liveBus.handle(e)
       st().handleEvent(e)
     }
-    if (!isHud()) voice.init(client)
+    if (isMain()) voice.init(client)
 
     const q = new URLSearchParams(location.search)
     let off = () => {}
@@ -73,16 +80,21 @@ function useThemeAndHud(): void {
   // Alt+Space fallback only when the backend's low-level key hook is unavailable
   useEffect(() => (hotkeys === false ? window.api?.onPttToggle(() => voice.pttToggle()) : undefined), [hotkeys])
 
-  // shrink into the Mini-HUD while Claude is acting; restore the window when it is done
+  // While Claude acts: Mini-HUD pill, floating live view and Claude's on-screen cursor (the main window steps aside)
+  const liveMode = useStore((s) => s.settings.live_view)
+  const agentCursor = useStore((s) => s.settings.agent_cursor)
   useEffect(() => {
-    if (!window.api) return
+    if (!window.api || !isMain()) return
     const active = agentState === 'running' || agentState === 'paused'
-    if (active && hudEnabled) void window.api.setHud(true)
-    else if (hudWasOn.current) void window.api.setHud(false)
-    hudWasOn.current = active && hudEnabled
-  }, [agentState, hudEnabled])
+    void window.api.setRunUi({
+      active,
+      hud: hudEnabled,
+      live: liveMode === 'floating',
+      overlay: agentCursor,
+      minimizeMain: liveMode !== 'panel' && (hudEnabled || liveMode === 'floating'),
+    })
+  }, [agentState, hudEnabled, liveMode, agentCursor])
 }
-const hudWasOn = { current: false }
 
 function Splash({ text, error, action }: { text: string; error?: string; action?: () => void }) {
   return (
@@ -127,6 +139,9 @@ function Shell() {
   const setUi = useStore((s) => s.setUi)
   const agentState = useStore((s) => s.agentState)
   const ready = useStore((s) => s.ready)
+  const livePanel = useStore((s) => s.ui.livePanel)
+  const liveMode = useStore((s) => s.settings.live_view)
+  const showPanel = liveMode !== 'off' && (livePanel || (liveMode === 'panel' && agentState !== 'idle'))
 
   return (
     <div className="flex h-full">
@@ -137,6 +152,11 @@ function Shell() {
             <PanelLeft size={18} />
           </IconButton>
           <span className="min-w-0 flex-1 truncate text-center text-[13px] text-muted">{title}</span>
+          {liveMode !== 'off' && (
+            <IconButton label={showPanel ? 'Hide live view' : 'Show live view'} onClick={() => setUi({ livePanel: !livePanel })} className={showPanel ? 'text-accent' : ''}>
+              <Monitor size={18} />
+            </IconButton>
+          )}
           {agentState !== 'idle' && (
             <span className="flex items-center gap-1.5 text-[12px] text-accent">
               <LoaderCircle size={13} className="spin" /> {agentState === 'paused' ? 'Paused' : 'Working'}
@@ -149,6 +169,16 @@ function Shell() {
         </div>
         <PromptBar />
       </main>
+      {showPanel && (
+        <aside className="flex w-[430px] shrink-0 flex-col border-l border-line bg-soft">
+          <div className="drag flex h-10 shrink-0 items-center gap-2 px-4 text-[12px] font-medium">
+            <span className="relative flex h-2.5 w-2.5"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-danger opacity-60" /><span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-danger" /></span>
+            LIVE <span className="font-normal text-muted">Claude’s screen</span>
+          </div>
+          <div className="px-3"><LiveView /></div>
+          <p className="px-4 pt-3 text-[12px] leading-relaxed text-muted">Watch Claude’s cursor work on your primary monitor in real time. (Claude itself perceives the screen in snapshots; this view is live video for you.)</p>
+        </aside>
+      )}
       {settingsOpen && <SettingsModal />}
       {workflowDraft && <WorkflowDialog />}
       <ApprovalModal />
@@ -162,7 +192,10 @@ export default function App() {
   useThemeAndHud()
   const { backend, conn, auth } = useStore(useShallow((s) => ({ backend: s.backend, conn: s.conn, auth: s.auth })))
 
-  if (isHud()) return <Hud />
+  const r = route()
+  if (r === 'hud') return <Hud />
+  if (r === 'live') return <LiveWindow />
+  if (r === 'overlay') return <Overlay />
   if (!backend || backend.status === 'starting' || backend.status === 'restarting') return <Splash text={backend?.status === 'restarting' ? 'Restarting the engine…' : 'Starting the OS-control engine…'} />
   if (backend.status === 'failed') return <Splash text="" error={backend.error} action={() => void window.api?.restartBackend()} />
   if (conn !== 'open' && !auth) return <Splash text="Connecting…" />

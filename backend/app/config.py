@@ -38,6 +38,12 @@ class Settings(BaseModel):
     human_mouse: bool = True
     draw_cursor: bool = True
     hud_enabled: bool = True
+    # --- live view (v1.1)
+    live_view: Literal["floating", "panel", "off"] = "floating"
+    live_fps: int = Field(10, ge=2, le=20)
+    live_width: int = Field(960, ge=480, le=1920)
+    live_quality: int = Field(55, ge=30, le=90)
+    agent_cursor: bool = True  # draw Claude's cursor + click ripples on the real desktop
     # --- voice (100% local / keyless)
     speak_responses: bool = False
     stt_model: str = "base.en"
