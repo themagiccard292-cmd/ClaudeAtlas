@@ -18,6 +18,8 @@ jobs:
         with: { python-version: '3.12' }
       - name: Build (backend.exe + UI + installers)
         shell: cmd
+        env:
+          PY_CMD: python   # the 3.12 installed above, not the newest on the runner
         run: call build.bat
       - uses: actions/upload-artifact@v4
         with:
