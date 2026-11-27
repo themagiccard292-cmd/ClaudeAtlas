@@ -51,6 +51,13 @@ is video for **you**. Action thumbnails in the chat are still there but collapse
   click can't reach the HUD). Voice (“approve”/“deny”) and **Esc Esc** (stop) also work.
 * Updates are checked every 30 min and a downloaded update **installs automatically** after 2 idle minutes.
 
+## v1.2.3
+
+* **Model picker in the prompt bar** (Default / Opus / Sonnet / Haiku + thinking effort), like Claude. Applies to your next message.
+* **Approvals are optional**: one-click **Approvals on/off** switch in the prompt bar (turning off asks for confirmation).
+* **HUD pill is now clickable**: it was a non-focusable window, which got no mouse input on Windows. Clicking it can move
+  keyboard focus, so after an approval answer the backend hands focus back to the app Claude was using.
+
 ## Why it signs in through Claude Code (and not an embedded claude.ai session)
 
 The brief asked for an embedded `claude.ai` login with cookie capture and a DOM/network interceptor. **That is not

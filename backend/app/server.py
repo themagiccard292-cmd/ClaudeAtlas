@@ -98,7 +98,9 @@ def create_services(data_dir: Path, *, ws_token: str, mcp_token: str, drivers: D
     settings = SettingsStore(paths.settings)
     hub = Hub()
     kill = KillSwitch()
-    approvals = ApprovalManager(hub.emit, kill, mode=lambda: settings.value.approval_mode)
+    from . import winfocus
+
+    approvals = ApprovalManager(hub.emit, kill, mode=lambda: settings.value.approval_mode, focus_capture=winfocus.foreground, focus_restore=winfocus.restore)
     chats, workflows = ChatStore(paths.chats, paths.shots), WorkflowStore(paths.workflows)
 
     os_errors: list[str] = []

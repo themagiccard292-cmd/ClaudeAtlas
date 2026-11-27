@@ -92,7 +92,7 @@ function createHud(): BrowserWindow {
     resizable: false,
     skipTaskbar: true,
     alwaysOnTop: true,
-    focusable: false, // clicking STOP must not steal focus from the app Claude is working in
+    focusable: true, // must be truly clickable on Windows (a non-focusable window got NO mouse input); showInactive() still avoids stealing focus on show, and the backend restores focus after an approval
     hasShadow: false,
     show: false,
     title: HUD_TITLE,

@@ -11,9 +11,9 @@ on:
         type: boolean
         default: true
       tag:
-        description: 'Release tag (e.g. v1.2.2) - becomes the app version, so it must be higher than the last release'
+        description: 'Release tag (e.g. v1.2.3) - becomes the app version, so it must be higher than the last release'
         type: string
-        default: 'v1.2.2'
+        default: 'v1.2.3'
   push:
     tags: ['v*']
 
