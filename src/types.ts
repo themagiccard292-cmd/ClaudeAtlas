@@ -74,6 +74,7 @@ export interface Settings {
   live_fps: number
   live_width: number
   live_quality: number
+  screen_glow: boolean
   agent_cursor: boolean
   speak_responses: boolean
   stt_model: string
@@ -119,4 +120,11 @@ export interface Toast {
   id: number
   text: string
   kind: 'info' | 'error' | 'warn'
+}
+
+export interface UpdateStatus {
+  state: 'idle' | 'checking' | 'downloading' | 'ready' | 'error'
+  version?: string
+  percent?: number
+  message?: string
 }

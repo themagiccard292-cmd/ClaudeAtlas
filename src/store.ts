@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { BackendEvent, ConnState } from './lib/backend'
-import type { AgentState, Approval, AuthStatus, BackendInfo, Chat, ChatMeta, Item, ReadyInfo, Settings, Toast, VoiceMode, Workflow } from './types'
+import type { UpdateStatus, AgentState, Approval, AuthStatus, BackendInfo, Chat, ChatMeta, Item, ReadyInfo, Settings, Toast, VoiceMode, Workflow } from './types'
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
@@ -20,6 +20,7 @@ export const DEFAULT_SETTINGS: Settings = {
   live_fps: 10,
   live_width: 960,
   live_quality: 55,
+  screen_glow: true,
   agent_cursor: true,
   speak_responses: false,
   stt_model: 'base.en',
@@ -45,6 +46,7 @@ interface State {
   auth: AuthStatus | null
   login: LoginFlow
   install: { active: boolean; lines: string[]; error: string }
+  update: UpdateStatus
   chats: ChatMeta[]
   workflows: Workflow[]
   activeChatId: string | null
@@ -57,6 +59,7 @@ interface State {
   toasts: Toast[]
   ui: { sidebarOpen: boolean; settingsOpen: boolean; settingsTab: string; workflowDraft: { name: string; prompt: string; id?: string } | null; livePanel: boolean }
 
+  setUpdate(u: UpdateStatus): void
   setConn(c: ConnState): void
   setBackend(b: BackendInfo | null): void
   setVoice(p: Partial<State['voice']>): void
@@ -77,6 +80,7 @@ export const useStore = create<State>((set, get) => ({
   auth: null,
   login: { active: false, url: '', error: '' },
   install: { active: false, lines: [], error: '' },
+  update: { state: 'idle' },
   chats: [],
   workflows: [],
   activeChatId: null,
@@ -89,6 +93,7 @@ export const useStore = create<State>((set, get) => ({
   toasts: [],
   ui: { sidebarOpen: true, settingsOpen: false, settingsTab: 'general', workflowDraft: null, livePanel: false },
 
+  setUpdate: (update) => set({ update }),
   setConn: (conn) => set({ conn }),
   setBackend: (backend) => set({ backend }),
   setVoice: (p) => set((s) => ({ voice: { ...s.voice, ...p } })),

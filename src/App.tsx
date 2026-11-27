@@ -41,6 +41,7 @@ function useBootstrap(): void {
       st().handleEvent(e)
     }
     if (isMain()) voice.init(client)
+    const offUpdate = isMain() ? window.api?.onUpdateStatus((u) => st().setUpdate(u)) : undefined
 
     const q = new URLSearchParams(location.search)
     let off = () => {}
@@ -52,6 +53,7 @@ function useBootstrap(): void {
     }
     return () => {
       off()
+      offUpdate?.()
       client.disconnect()
     }
   }, [])
@@ -82,7 +84,7 @@ function useThemeAndHud(): void {
 
   // While Claude acts: Mini-HUD pill, floating live view and Claude's on-screen cursor (the main window steps aside)
   const liveMode = useStore((s) => s.settings.live_view)
-  const agentCursor = useStore((s) => s.settings.agent_cursor)
+  const agentCursor = useStore((s) => s.settings.agent_cursor || s.settings.screen_glow)
   useEffect(() => {
     if (!window.api || !isMain()) return
     const active = agentState === 'running' || agentState === 'paused'
@@ -109,6 +111,23 @@ function Splash({ text, error, action }: { text: string; error?: string; action?
               Restart engine
             </button>
           )}
+        </>
+      )}
+    </div>
+  )
+}
+
+function UpdateBanner() {
+  const u = useStore((s) => s.update)
+  if (u.state !== 'ready' && u.state !== 'downloading') return null
+  return (
+    <div className="rise fixed left-1/2 top-12 z-[65] flex -translate-x-1/2 items-center gap-3 rounded-full border border-line bg-card px-4 py-2 text-[13px] shadow-lg">
+      {u.state === 'downloading' ? (
+        <><LoaderCircle size={15} className="spin text-accent" /> Downloading update{u.version ? ` ${u.version}` : ''}… {u.percent ?? 0}%</>
+      ) : (
+        <>
+          <span>Update {u.version} is ready.</span>
+          <button onClick={() => void window.api?.installUpdate()} className="rounded-full bg-accent px-3 py-1 text-[12.5px] font-semibold text-accent-fg hover:bg-accent-hover">Restart to update</button>
         </>
       )}
     </div>
@@ -182,6 +201,7 @@ function Shell() {
       {settingsOpen && <SettingsModal />}
       {workflowDraft && <WorkflowDialog />}
       <ApprovalModal />
+      <UpdateBanner />
       <Toasts />
     </div>
   )

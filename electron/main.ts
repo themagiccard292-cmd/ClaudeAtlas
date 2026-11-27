@@ -1,5 +1,6 @@
 import { app, BrowserWindow, globalShortcut, ipcMain, nativeTheme, screen, session, shell } from 'electron'
 import * as path from 'path'
+import { autoUpdater } from 'electron-updater'
 import { BackendManager } from './backend'
 
 const DEV_URL = !app.isPackaged && process.env.ELECTRON_DEV === '1' ? 'http://localhost:5173' : null
@@ -215,6 +216,29 @@ function applyTitleBarTheme(): void {
   }
 }
 
+/** Auto-update from GitHub Releases (installed build only; the portable exe cannot self-update). */
+function setupUpdater(): void {
+  if (!app.isPackaged || process.env.PORTABLE_EXECUTABLE_DIR) return
+  autoUpdater.autoDownload = true
+  autoUpdater.autoInstallOnAppQuit = true // also installs silently the next time the app is closed
+  let version = ''
+  const send = (s: Record<string, unknown>) => mainWin?.webContents.send('update:status', s)
+  autoUpdater.on('checking-for-update', () => send({ state: 'checking' }))
+  autoUpdater.on('update-available', (i) => { version = i.version; send({ state: 'downloading', version, percent: 0 }) })
+  autoUpdater.on('update-not-available', () => send({ state: 'idle' }))
+  autoUpdater.on('download-progress', (p) => send({ state: 'downloading', version, percent: Math.round(p.percent) }))
+  autoUpdater.on('update-downloaded', (i) => send({ state: 'ready', version: i.version }))
+  autoUpdater.on('error', (e) => send({ state: 'error', message: e.message }))
+  const check = () => void autoUpdater.checkForUpdates().catch(() => undefined)
+  setTimeout(check, 8000)
+  setInterval(check, 4 * 3600_000)
+  ipcMain.handle('update:check', () => check())
+  ipcMain.handle('update:install', () => {
+    backend?.stop() // free backend.exe so the installer can replace it
+    autoUpdater.quitAndInstall(true, true)
+  })
+}
+
 function registerIpc(): void {
   ipcMain.handle('backend:info', () => backend?.info ?? null)
   ipcMain.handle('backend:restart', async () => {
@@ -240,6 +264,7 @@ app.setAppUserModelId('com.claudeosagent.app')
 app.whenReady().then(async () => {
   if (!app.hasSingleInstanceLock()) return
   registerIpc()
+  setupUpdater()
 
   // Microphone for voice control - only for our own pages; nothing else is ever granted.
   session.defaultSession.setPermissionRequestHandler((_wc, permission, cb) => cb(permission === 'media'))
