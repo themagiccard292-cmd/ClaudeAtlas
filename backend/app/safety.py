@@ -316,7 +316,8 @@ class Decision:
 
 
 class ApprovalManager:
-    def __init__(self, emit: Callable[..., None], kill: KillSwitch, mode: Callable[[], str] = lambda: "smart") -> None:
+    def __init__(self, emit: Callable[..., None], kill: KillSwitch, mode: Callable[[], str] = lambda: "smart", focus_capture: Callable[[], object] | None = None, focus_restore: Callable[[object], None] | None = None) -> None:
+        self._focus_capture, self._focus_restore = focus_capture, focus_restore
         self._emit = emit
         self._kill = kill
         self._mode = mode
@@ -338,6 +339,7 @@ class ApprovalManager:
         loop = asyncio.get_running_loop()
         self._loop = loop
         aid = uuid.uuid4().hex[:10]
+        previous = self._focus_capture() if self._focus_capture else None  # who had focus before the prompt
         fut: asyncio.Future = loop.create_future()
         info = {"id": aid, "kind": kind, "summary": summary, "details": details[:4000], "risk": risk, "ts": time.time()}
         self._pending[aid] = (fut, info)
@@ -349,6 +351,11 @@ class ApprovalManager:
         finally:
             self._pending.pop(aid, None)
             self._emit("approval.resolved", id=aid)
+            if self._focus_restore and previous:
+                try:
+                    self._focus_restore(previous)  # clicking the HUD stole focus: give it back
+                except Exception:  # noqa: BLE001
+                    pass
 
     def resolve(self, approval_id: str, approved: bool, via: str = "ui") -> bool:
         item = self._pending.get(approval_id)

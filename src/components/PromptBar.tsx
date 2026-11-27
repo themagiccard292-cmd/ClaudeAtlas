@@ -1,8 +1,9 @@
-import { ArrowUp, AudioLines, Mic, Square } from 'lucide-react'
+import { ArrowUp, AudioLines, Mic, ShieldCheck, ShieldOff, Square } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { client } from '../lib/backend'
 import { voice } from '../lib/voice'
 import { useStore } from '../store'
+import { ModelMenu } from './ModelMenu'
 import { Visualizer } from './Visualizer'
 import { cx } from './ui'
 
@@ -34,6 +35,12 @@ export function PromptBar() {
   const setHandsFree = (on: boolean) => {
     client.send({ type: 'settings.set', patch: { hands_free: on } })
     void voice.setHandsFree(on)
+  }
+
+  const approvalsOn = settings.approval_mode !== 'never'
+  const toggleApprovals = () => {
+    if (approvalsOn && !window.confirm('Turn OFF approvals?\n\nClaude will delete files, send messages, make purchases and change settings WITHOUT asking you first.')) return
+    client.send({ type: 'settings.set', patch: { approval_mode: approvalsOn ? 'never' : 'smart' } })
   }
 
   const label = v.mode === 'transcribing' ? 'Transcribing…' : v.mode === 'speaking' ? 'Claude is speaking — talk to interrupt' : v.mode === 'listening' ? (settings.hands_free ? (settings.wake_word_enabled ? `Listening — say “${settings.wake_word}”` : 'Listening…') : 'Listening — release to send') : ''
@@ -98,8 +105,12 @@ export function PromptBar() {
           <button onClick={() => setHandsFree(!settings.hands_free)} aria-pressed={settings.hands_free} className={cx('no-drag flex items-center gap-1.5 rounded-full px-2.5 py-1 transition-colors hover:bg-hover', settings.hands_free && 'bg-accent/15 text-accent')}>
             <AudioLines size={14} /> Hands-free {settings.hands_free ? 'on' : 'off'}
           </button>
-          <span>Hold <kbd className="rounded border border-line px-1 font-mono text-[11px]">Alt</kbd>+<kbd className="rounded border border-line px-1 font-mono text-[11px]">Space</kbd> to talk</span>
-          <span className="ml-auto">Enter to send · Shift+Enter for a new line</span>
+          <button onClick={toggleApprovals} aria-pressed={approvalsOn} title={approvalsOn ? 'Claude asks before risky actions (click to turn off)' : 'Claude will NOT ask before risky actions (click to turn on)'} className={cx('no-drag flex items-center gap-1.5 rounded-full px-2.5 py-1 transition-colors hover:bg-hover', approvalsOn ? '' : 'bg-warn/15 text-warn')}>
+            {approvalsOn ? <ShieldCheck size={14} /> : <ShieldOff size={14} />} Approvals {approvalsOn ? 'on' : 'off'}
+          </button>
+          <span className="hidden md:inline">Hold <kbd className="rounded border border-line px-1 font-mono text-[11px]">Alt</kbd>+<kbd className="rounded border border-line px-1 font-mono text-[11px]">Space</kbd> to talk</span>
+          <span className="ml-auto" />
+          <ModelMenu />
         </div>
       </div>
     </div>

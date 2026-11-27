@@ -27,10 +27,9 @@ Watch Claude work in real time instead of reading screenshots:
   skipped and slow viewers drop stale frames instead of lagging).
 * **Claude's cursor**: a labelled terracotta cursor that glides exactly where the real pointer goes, with click
   ripples (left / right / double) and badges (“Typing 12 chars…”, “Scrolling ↓”, “ctrl+s”, “Dragging”).
-* **Three ways to watch** (Settings → General → Live view): a **floating always-on-top window** (default, resizable,
-  hidden from capture so it never mirrors itself), a **panel inside the app** (ideal with two monitors — only the
-  primary monitor is controlled), or off. Plus an optional **on-screen cursor overlay** drawn on your real desktop.
-* The live window and the HUD are click-through at the exact moment Claude clicks beneath them.
+* **In-app live panel** (Settings → General → Live view, off by default; ideal with two monitors — only the
+  primary monitor is controlled). *(The floating live-view window was removed in 1.2.2.)* Plus an optional **on-screen cursor overlay** drawn on your real desktop.
+* The HUD is click-through at the exact moment Claude clicks beneath it.
 
 Honest note: Claude itself still *perceives* through snapshots (Claude Code accepts images, not video); the live view
 is video for **you**. Action thumbnails in the chat are still there but collapsed.
@@ -43,6 +42,21 @@ is video for **you**. Action thumbnails in the chat are still there but collapse
   the background and shows **Restart to update** (it also installs when the app is next closed). Publishing an update =
   run **Build Windows installer** with a higher tag (e.g. `v1.2.1`); users get it automatically.
   The **portable exe cannot self-update**, and builds before v1.2 have no updater — install v1.2 once, manually.
+
+## v1.2.1 — HUD clicks, keyboard approvals, hands-free updates
+
+* HUD/live-window buttons are no longer inside a window-drag region (frameless transparent windows on Windows can
+  swallow clicks there); z-order is HUD > live view > overlay, and the overlay is click-through with forwarding.
+* **Click-free approvals:** **Ctrl+Alt+Y** approves, **Ctrl+Alt+N** denies the oldest pending request (works even if a
+  click can't reach the HUD). Voice (“approve”/“deny”) and **Esc Esc** (stop) also work.
+* Updates are checked every 30 min and a downloaded update **installs automatically** after 2 idle minutes.
+
+## v1.2.3
+
+* **Model picker in the prompt bar** (Default / Opus / Sonnet / Haiku + thinking effort), like Claude. Applies to your next message.
+* **Approvals are optional**: one-click **Approvals on/off** switch in the prompt bar (turning off asks for confirmation).
+* **HUD pill is now clickable**: it was a non-focusable window, which got no mouse input on Windows. Clicking it can move
+  keyboard focus, so after an approval answer the backend hands focus back to the app Claude was using.
 
 ## Why it signs in through Claude Code (and not an embedded claude.ai session)
 

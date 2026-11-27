@@ -611,3 +611,22 @@ def test_probe_understands_bracketed_file_variants(monkeypatch):
     info = claude_cli.probe("claude")
     assert info.has("--append-system-prompt-file") and info.has("--system-prompt-file") and info.has("--append-system-prompt")
     assert info.version.startswith("2.1.332")
+
+
+def test_old_floating_live_view_setting_migrates_instead_of_resetting_settings(tmp_path):
+    import json
+    from app.config import SettingsStore
+    f = tmp_path / "settings.json"
+    f.write_text(json.dumps({"theme": "dark", "live_view": "floating", "model": "sonnet"}))
+    st = SettingsStore(f)
+    assert st.value.live_view == "off" and st.value.theme == "dark" and st.value.model == "sonnet"
+
+
+@pytest.mark.asyncio
+async def test_focus_is_restored_after_an_approval_answer():
+    calls = []
+    mgr = ApprovalManager(lambda *a, **k: None, KillSwitch(), focus_capture=lambda: "hwnd-123", focus_restore=lambda h: calls.append(h))
+    task = asyncio.create_task(mgr.request("delete", "x"))
+    await asyncio.sleep(0.05)
+    mgr.resolve(next(iter(mgr._pending)), True)
+    assert (await task).approved and calls == ["hwnd-123"]

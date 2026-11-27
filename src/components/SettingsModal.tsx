@@ -70,8 +70,8 @@ export function SettingsModal() {
               <Row title="Thinking effort" hint="Higher = more careful but slower and uses more of your plan’s limit.">
                 <Select label="Effort" value={settings.effort} onChange={(v) => set({ effort: v })} options={[['', 'Default'], ['low', 'Low'], ['medium', 'Medium'], ['high', 'High'], ['xhigh', 'Extra high'], ['max', 'Max']]} />
               </Row>
-              <Row title="Live view" hint="Watch Claude control your screen in real time: a floating always-on-top window, a panel inside this app (great with two monitors), or off.">
-                <Select label="Live view" value={settings.live_view} onChange={(v) => set({ live_view: v })} options={[['floating', 'Floating window'], ['panel', 'Panel in this window'], ['off', 'Off']]} />
+              <Row title="Live view" hint="Watch Claude control your screen in real time: a panel inside this app (great with two monitors), or off.">
+                <Select label="Live view" value={settings.live_view} onChange={(v) => set({ live_view: v })} options={[['panel', 'Panel in this window'], ['off', 'Off']]} />
               </Row>
               <Row title="Orange glow around the screen" hint="A glowing orange edge shows whenever Claude is controlling your PC. Not visible to Claude.">
                 <Toggle label="Screen glow" checked={settings.screen_glow} onChange={(v) => set({ screen_glow: v })} />

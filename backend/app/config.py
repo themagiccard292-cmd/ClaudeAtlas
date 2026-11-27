@@ -9,7 +9,7 @@ import threading
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from . import APP_DIR_NAME
 
@@ -22,6 +22,11 @@ def default_data_dir() -> Path:
 
 
 class Settings(BaseModel):
+    @field_validator("live_view", mode="before")
+    @classmethod
+    def _migrate_live_view(cls, v):
+        return "off" if v == "floating" else v  # the floating live window was removed in 1.2.2
+
     # --- appearance
     theme: Literal["light", "dark", "system"] = "system"
     # --- Claude Code (Pro login)
@@ -39,7 +44,7 @@ class Settings(BaseModel):
     draw_cursor: bool = True
     hud_enabled: bool = True
     # --- live view (v1.1)
-    live_view: Literal["floating", "panel", "off"] = "floating"
+    live_view: Literal["panel", "off"] = "off"
     live_fps: int = Field(10, ge=2, le=20)
     live_width: int = Field(960, ge=480, le=1920)
     live_quality: int = Field(55, ge=30, le=90)
