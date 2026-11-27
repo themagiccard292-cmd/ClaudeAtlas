@@ -1,4 +1,4 @@
 """Claude OS Agent - Windows automation sidecar."""
 
-__version__ = "1.2.1"
+__version__ = "1.2.2"
 APP_DIR_NAME = "ClaudeOSAgent"

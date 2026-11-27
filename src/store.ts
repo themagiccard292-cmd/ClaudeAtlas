@@ -16,7 +16,7 @@ export const DEFAULT_SETTINGS: Settings = {
   human_mouse: true,
   draw_cursor: true,
   hud_enabled: true,
-  live_view: 'floating',
+  live_view: 'off',
   live_fps: 10,
   live_width: 960,
   live_quality: 55,

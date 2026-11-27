@@ -5,7 +5,6 @@ import { ApprovalModal, respond } from './components/ApprovalModal'
 import { ChatView } from './components/ChatView'
 import { Hud } from './components/Hud'
 import { LiveView } from './components/LiveView'
-import { LiveWindow } from './components/LiveWindow'
 import { Overlay } from './components/Overlay'
 import { PromptBar } from './components/PromptBar'
 import { SettingsModal } from './components/SettingsModal'
@@ -18,7 +17,7 @@ import { voice } from './lib/voice'
 import { useStore } from './store'
 import type { BackendInfo } from './types'
 
-const route = () => (location.hash.startsWith('#/hud') ? 'hud' : location.hash.startsWith('#/live') ? 'live' : location.hash.startsWith('#/overlay') ? 'overlay' : 'main')
+const route = () => (location.hash.startsWith('#/hud') ? 'hud' : location.hash.startsWith('#/overlay') ? 'overlay' : 'main')
 const isMain = () => route() === 'main'
 
 /** Connect to the Python backend (port/token come from Electron; `?port=&token=` allows browser dev/testing). */
@@ -105,9 +104,8 @@ function useThemeAndHud(): void {
     void window.api.setRunUi({
       active,
       hud: hudEnabled,
-      live: liveMode === 'floating',
       overlay: agentCursor,
-      minimizeMain: liveMode !== 'panel' && (hudEnabled || liveMode === 'floating'),
+      minimizeMain: liveMode !== 'panel' && hudEnabled,
     })
   }, [agentState, hudEnabled, liveMode, agentCursor])
 }
@@ -228,7 +226,6 @@ export default function App() {
 
   const r = route()
   if (r === 'hud') return <Hud />
-  if (r === 'live') return <LiveWindow />
   if (r === 'overlay') return <Overlay />
   if (!backend || backend.status === 'starting' || backend.status === 'restarting') return <Splash text={backend?.status === 'restarting' ? 'Restarting the engine…' : 'Starting the OS-control engine…'} />
   if (backend.status === 'failed') return <Splash text="" error={backend.error} action={() => void window.api?.restartBackend()} />

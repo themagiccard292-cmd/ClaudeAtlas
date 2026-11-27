@@ -611,3 +611,12 @@ def test_probe_understands_bracketed_file_variants(monkeypatch):
     info = claude_cli.probe("claude")
     assert info.has("--append-system-prompt-file") and info.has("--system-prompt-file") and info.has("--append-system-prompt")
     assert info.version.startswith("2.1.332")
+
+
+def test_old_floating_live_view_setting_migrates_instead_of_resetting_settings(tmp_path):
+    import json
+    from app.config import SettingsStore
+    f = tmp_path / "settings.json"
+    f.write_text(json.dumps({"theme": "dark", "live_view": "floating", "model": "sonnet"}))
+    st = SettingsStore(f)
+    assert st.value.live_view == "off" and st.value.theme == "dark" and st.value.model == "sonnet"

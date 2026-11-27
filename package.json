@@ -1,7 +1,7 @@
 {
   "name": "claude-os-agent",
   "productName": "Claude OS Agent",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Desktop agent that operates Windows through your own Claude Code (Claude Pro) sign-in.",
   "author": "Claude OS Agent",
   "license": "MIT",

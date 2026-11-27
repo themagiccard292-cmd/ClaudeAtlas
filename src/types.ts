@@ -70,7 +70,7 @@ export interface Settings {
   human_mouse: boolean
   draw_cursor: boolean
   hud_enabled: boolean
-  live_view: 'floating' | 'panel' | 'off'
+  live_view: 'panel' | 'off'
   live_fps: number
   live_width: number
   live_quality: number

@@ -27,10 +27,9 @@ Watch Claude work in real time instead of reading screenshots:
   skipped and slow viewers drop stale frames instead of lagging).
 * **Claude's cursor**: a labelled terracotta cursor that glides exactly where the real pointer goes, with click
   ripples (left / right / double) and badges (“Typing 12 chars…”, “Scrolling ↓”, “ctrl+s”, “Dragging”).
-* **Three ways to watch** (Settings → General → Live view): a **floating always-on-top window** (default, resizable,
-  hidden from capture so it never mirrors itself), a **panel inside the app** (ideal with two monitors — only the
-  primary monitor is controlled), or off. Plus an optional **on-screen cursor overlay** drawn on your real desktop.
-* The live window and the HUD are click-through at the exact moment Claude clicks beneath them.
+* **In-app live panel** (Settings → General → Live view, off by default; ideal with two monitors — only the
+  primary monitor is controlled). *(The floating live-view window was removed in 1.2.2.)* Plus an optional **on-screen cursor overlay** drawn on your real desktop.
+* The HUD is click-through at the exact moment Claude clicks beneath it.
 
 Honest note: Claude itself still *perceives* through snapshots (Claude Code accepts images, not video); the live view
 is video for **you**. Action thumbnails in the chat are still there but collapsed.

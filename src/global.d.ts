@@ -11,8 +11,7 @@ declare global {
       onBackendStatus(cb: (info: BackendInfo) => void): Unsub
       openExternal(url: string): Promise<void>
       setTheme(theme: 'light' | 'dark' | 'system'): Promise<void>
-      setRunUi(o: { active: boolean; hud: boolean; live: boolean; overlay: boolean; minimizeMain: boolean }): Promise<void>
-      setLiveSize(size: 's' | 'm' | 'l'): Promise<void>
+      setRunUi(o: { active: boolean; hud: boolean; overlay: boolean; minimizeMain: boolean }): Promise<void>
       onApprovalKey(cb: (approve: boolean) => void): Unsub
       onUpdateStatus(cb: (s: UpdateStatus) => void): Unsub
       checkForUpdates(): Promise<void>

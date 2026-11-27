@@ -5,15 +5,11 @@ import { BackendManager } from './backend'
 
 const DEV_URL = !app.isPackaged && process.env.ELECTRON_DEV === '1' ? 'http://localhost:5173' : null
 const HUD_TITLE = 'Claude OS Agent HUD' // the Python side finds these by exact title (click-through shield)
-const LIVE_TITLE = 'Claude OS Agent Live'
 
 let mainWin: BrowserWindow | null = null
 let hudWin: BrowserWindow | null = null
-let liveWin: BrowserWindow | null = null
 let overlayWin: BrowserWindow | null = null
 let minimizedByUs = false
-let liveSize: 's' | 'm' | 'l' = 'm'
-const LIVE_DIMS = { s: [360, 238], m: [500, 322], l: [760, 478] } as const
 let backend: BackendManager | null = null
 let quitting = false
 
@@ -129,24 +125,6 @@ function auxWebPrefs() {
   }
 }
 
-/** Floating "Claude's screen" window: live video + Claude's cursor. Hidden from capture (no mirror-in-mirror). */
-function createLive(): BrowserWindow {
-  const wa = screen.getPrimaryDisplay().workArea
-  const [w, h] = LIVE_DIMS[liveSize]
-  const win = new BrowserWindow({
-    width: w, height: h, x: wa.x + wa.width - w - 20, y: wa.y + 20,
-    frame: false, transparent: true, resizable: false, skipTaskbar: true, alwaysOnTop: true,
-    focusable: false, hasShadow: false, show: false, title: LIVE_TITLE, webPreferences: auxWebPrefs(),
-  })
-  win.setAlwaysOnTop(true, 'screen-saver', 1)
-  win.setContentProtection(true)
-  win.on('page-title-updated', (e) => e.preventDefault())
-  hardenWebContents(win)
-  loadRenderer(win, '/live')
-  win.on('closed', () => { liveWin = null })
-  return win
-}
-
 /** Full-screen, click-through overlay on the primary display that draws Claude's cursor + click ripples. */
 function createOverlay(): BrowserWindow {
   const b = screen.getPrimaryDisplay().bounds
@@ -170,7 +148,7 @@ function showWhenLoaded(win: BrowserWindow): void {
   else show()
 }
 
-interface RunUi { active: boolean; hud: boolean; live: boolean; overlay: boolean; minimizeMain: boolean }
+interface RunUi { active: boolean; hud: boolean; overlay: boolean; minimizeMain: boolean }
 
 /** One call from the renderer whenever the agent starts/stops or the related settings change. */
 function setRunUi(o: RunUi): void {
@@ -182,9 +160,8 @@ function setRunUi(o: RunUi): void {
     } else get()?.hide()
   }
   want(o.hud, () => hudWin, createHud, (w) => { hudWin = w })
-  want(o.live, () => liveWin, createLive, (w) => { liveWin = w })
   want(o.overlay, () => overlayWin, createOverlay, (w) => { overlayWin = w })
-  if (o.active) setTimeout(() => { liveWin?.moveTop(); hudWin?.moveTop() }, 400) // HUD always on top of everything of ours
+  if (o.active) setTimeout(() => { hudWin?.moveTop() }, 400) // HUD always on top of everything of ours
   if (o.active && o.minimizeMain) {
     if (mainWin && !mainWin.isMinimized()) { mainWin.minimize(); minimizedByUs = true }
   } else if (minimizedByUs) {
@@ -195,14 +172,6 @@ function setRunUi(o: RunUi): void {
       mainWin.focus()
     }
   }
-}
-
-function setLiveSize(size: 's' | 'm' | 'l'): void {
-  liveSize = size
-  if (!liveWin) return
-  const wa = screen.getPrimaryDisplay().workArea
-  const [w, h] = LIVE_DIMS[size]
-  liveWin.setBounds({ x: wa.x + wa.width - w - 20, y: wa.y + 20, width: w, height: h })
 }
 
 function applyTitleBarTheme(): void {
@@ -255,7 +224,6 @@ function registerIpc(): void {
     applyTitleBarTheme()
   })
   ipcMain.handle('run:ui', (_e, o: RunUi) => setRunUi(o))
-  ipcMain.handle('live:size', (_e, size: 's' | 'm' | 'l') => setLiveSize(size))
   ipcMain.handle('app:info', () => ({ version: app.getVersion(), dataDir: app.getPath('userData'), packaged: app.isPackaged }))
   ipcMain.on('voice:level', (_e, payload) => hudWin?.webContents.send('voice:level', payload))
 }
@@ -273,7 +241,7 @@ app.whenReady().then(async () => {
 
   backend = new BackendManager(app.getPath('userData'))
   backend.on('status', (info) => {
-    for (const w of [mainWin, hudWin, liveWin, overlayWin]) w?.webContents.send('backend:status', info)
+    for (const w of [mainWin, hudWin, overlayWin]) w?.webContents.send('backend:status', info)
   })
   void backend.start() // renderer shows "starting engine…" until the sidecar reports ready
 
