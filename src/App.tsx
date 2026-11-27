@@ -1,7 +1,7 @@
 import { AlertTriangle, Info, LoaderCircle, Monitor, PanelLeft, X } from 'lucide-react'
 import { useEffect } from 'react'
 import { useShallow } from 'zustand/react/shallow'
-import { ApprovalModal } from './components/ApprovalModal'
+import { ApprovalModal, respond } from './components/ApprovalModal'
 import { ChatView } from './components/ChatView'
 import { Hud } from './components/Hud'
 import { LiveView } from './components/LiveView'
@@ -81,6 +81,20 @@ function useThemeAndHud(): void {
 
   // Alt+Space fallback only when the backend's low-level key hook is unavailable
   useEffect(() => (hotkeys === false ? window.api?.onPttToggle(() => voice.pttToggle()) : undefined), [hotkeys])
+
+  // Ctrl+Alt+Y / Ctrl+Alt+N answer the oldest pending approval without clicking anything
+  useEffect(() => window.api?.onApprovalKey((approve) => {
+    const a = useStore.getState().approvals[0]
+    if (a) respond(a.id, approve)
+  }), [])
+
+  // A downloaded update installs by itself once Claude has been idle for 2 minutes (no manual reinstall/restart needed)
+  const updateState = useStore((s) => s.update.state)
+  useEffect(() => {
+    if (!isMain() || updateState !== 'ready' || agentState !== 'idle') return
+    const t = setTimeout(() => void window.api?.installUpdate(), 120_000)
+    return () => clearTimeout(t)
+  }, [updateState, agentState])
 
   // While Claude acts: Mini-HUD pill, floating live view and Claude's on-screen cursor (the main window steps aside)
   const liveMode = useStore((s) => s.settings.live_view)

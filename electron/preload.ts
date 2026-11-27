@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('api', {
   setTheme: (theme: 'light' | 'dark' | 'system') => ipcRenderer.invoke('theme:set', theme),
   setRunUi: (o: { active: boolean; hud: boolean; live: boolean; overlay: boolean; minimizeMain: boolean }) => ipcRenderer.invoke('run:ui', o),
   setLiveSize: (size: 's' | 'm' | 'l') => ipcRenderer.invoke('live:size', size),
+  onApprovalKey: (cb: (approve: boolean) => void) => on('approval:key', cb),
   onUpdateStatus: (cb: (s: unknown) => void) => on('update:status', cb),
   checkForUpdates: () => ipcRenderer.invoke('update:check'),
   installUpdate: () => ipcRenderer.invoke('update:install'),

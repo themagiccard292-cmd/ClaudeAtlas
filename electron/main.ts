@@ -108,7 +108,7 @@ function createHud(): BrowserWindow {
       backgroundThrottling: false,
     },
   })
-  win.setAlwaysOnTop(true, 'screen-saver')
+  win.setAlwaysOnTop(true, 'screen-saver', 2) // above the live window and the overlay
   win.setContentProtection(true) // keep the HUD out of the screenshots Claude takes
   win.on('page-title-updated', (e) => e.preventDefault()) // title must stay exactly HUD_TITLE
   hardenWebContents(win)
@@ -138,7 +138,7 @@ function createLive(): BrowserWindow {
     frame: false, transparent: true, resizable: false, skipTaskbar: true, alwaysOnTop: true,
     focusable: false, hasShadow: false, show: false, title: LIVE_TITLE, webPreferences: auxWebPrefs(),
   })
-  win.setAlwaysOnTop(true, 'screen-saver')
+  win.setAlwaysOnTop(true, 'screen-saver', 1)
   win.setContentProtection(true)
   win.on('page-title-updated', (e) => e.preventDefault())
   hardenWebContents(win)
@@ -154,8 +154,8 @@ function createOverlay(): BrowserWindow {
     x: b.x, y: b.y, width: b.width, height: b.height, frame: false, transparent: true, resizable: false, movable: false,
     skipTaskbar: true, alwaysOnTop: true, focusable: false, hasShadow: false, show: false, title: 'Claude OS Agent Overlay', webPreferences: auxWebPrefs(),
   })
-  win.setAlwaysOnTop(true, 'screen-saver')
-  win.setIgnoreMouseEvents(true) // never intercepts a click
+  win.setAlwaysOnTop(true, 'screen-saver', 0) // lowest of ours: must never sit above the HUD buttons
+  win.setIgnoreMouseEvents(true, { forward: true }) // never intercepts a click
   win.setContentProtection(true)
   win.on('page-title-updated', (e) => e.preventDefault())
   hardenWebContents(win)
@@ -184,6 +184,7 @@ function setRunUi(o: RunUi): void {
   want(o.hud, () => hudWin, createHud, (w) => { hudWin = w })
   want(o.live, () => liveWin, createLive, (w) => { liveWin = w })
   want(o.overlay, () => overlayWin, createOverlay, (w) => { overlayWin = w })
+  if (o.active) setTimeout(() => { liveWin?.moveTop(); hudWin?.moveTop() }, 400) // HUD always on top of everything of ours
   if (o.active && o.minimizeMain) {
     if (mainWin && !mainWin.isMinimized()) { mainWin.minimize(); minimizedByUs = true }
   } else if (minimizedByUs) {
@@ -231,7 +232,7 @@ function setupUpdater(): void {
   autoUpdater.on('error', (e) => send({ state: 'error', message: e.message }))
   const check = () => void autoUpdater.checkForUpdates().catch(() => undefined)
   setTimeout(check, 8000)
-  setInterval(check, 4 * 3600_000)
+  setInterval(check, 30 * 60_000) // every 30 min
   ipcMain.handle('update:check', () => check())
   ipcMain.handle('update:install', () => {
     backend?.stop() // free backend.exe so the installer can replace it
@@ -282,6 +283,9 @@ app.whenReady().then(async () => {
   // Alt+Space would open the window system menu; swallow it. Press/release detection lives in the
   // backend's low-level hook; this handler is only the fallback when that hook is unavailable.
   globalShortcut.register('Alt+Space', () => mainWin?.webContents.send('ptt:toggle'))
+  // Click-free approvals (works even if the HUD cannot be clicked): Ctrl+Alt+Y = approve, Ctrl+Alt+N = deny
+  globalShortcut.register('Control+Alt+Y', () => mainWin?.webContents.send('approval:key', true))
+  globalShortcut.register('Control+Alt+N', () => mainWin?.webContents.send('approval:key', false))
 })
 
 app.on('before-quit', () => {

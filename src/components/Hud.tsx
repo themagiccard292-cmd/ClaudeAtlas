@@ -23,13 +23,13 @@ export function Hud() {
   const status = approval ? approval.summary : paused ? 'Paused — listening for your instruction…' : hud.status || 'Claude is working…'
 
   return (
-    <div className="drag flex h-full w-full items-center justify-center p-[10px]">
+    <div className="flex h-full w-full items-center justify-center p-[10px]">
       <div className="flex h-[60px] w-full items-center gap-3 rounded-full border border-white/10 bg-[#1f1e1d]/95 pl-4 pr-2 text-[#f5f4ee] shadow-[0_8px_30px_rgba(0,0,0,.45)] backdrop-blur-md">
         <span className={`h-3 w-3 shrink-0 rounded-full ${approval ? 'bg-amber-400' : paused ? 'bg-sky-400' : 'pulse-ring bg-[#d97757]'}`} />
-        <div className="min-w-0 flex-1 leading-tight">
+        <div className="drag min-w-0 flex-1 cursor-move leading-tight" title="Drag to move">
           <div className="truncate text-[13px] font-medium" title={status}>{status}</div>
           <div className="mt-0.5 flex items-center gap-2 text-[11px] text-white/55">
-            <span>{approval ? 'Approval needed' : paused ? 'Paused' : `Step ${hud.steps}`}</span>
+            <span>{approval ? 'Approval needed · Ctrl+Alt+Y approve / Ctrl+Alt+N deny' : paused ? 'Paused' : `Step ${hud.steps}`}</span>
             {talking && (
               <>
                 <Mic size={11} />

@@ -44,6 +44,14 @@ is video for **you**. Action thumbnails in the chat are still there but collapse
   run **Build Windows installer** with a higher tag (e.g. `v1.2.1`); users get it automatically.
   The **portable exe cannot self-update**, and builds before v1.2 have no updater — install v1.2 once, manually.
 
+## v1.2.1 — HUD clicks, keyboard approvals, hands-free updates
+
+* HUD/live-window buttons are no longer inside a window-drag region (frameless transparent windows on Windows can
+  swallow clicks there); z-order is HUD > live view > overlay, and the overlay is click-through with forwarding.
+* **Click-free approvals:** **Ctrl+Alt+Y** approves, **Ctrl+Alt+N** denies the oldest pending request (works even if a
+  click can't reach the HUD). Voice (“approve”/“deny”) and **Esc Esc** (stop) also work.
+* Updates are checked every 30 min and a downloaded update **installs automatically** after 2 idle minutes.
+
 ## Why it signs in through Claude Code (and not an embedded claude.ai session)
 
 The brief asked for an embedded `claude.ai` login with cookie capture and a DOM/network interceptor. **That is not
